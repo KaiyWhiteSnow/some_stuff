@@ -2,14 +2,20 @@ package com.example.eshop;
 
 import com.example.eshop.cart.Cart;
 import com.example.eshop.cart.CartItem;
+import com.example.eshop.order.Order;
+import com.example.eshop.order.OrderService;
 import com.example.eshop.product.DigitalProduct;
 import com.example.eshop.product.PhysicalProduct;
 import com.example.eshop.product.Product;
+import com.example.eshop.payment.CreditCardPaymentProcessor;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import java.math.BigDecimal;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
-
-import java.math.BigDecimal;
-
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -162,4 +168,22 @@ public class AppTest {
         assertEquals(0, cart.getItems().size());
     }
 
+    @ParameterizedTest
+    @ValueSource(doubles = { 10.0, 20.0, 35.0 })
+    void testProcessPayment_WithPositiveAmount_True(double amount) {
+        assertTrue(new CreditCardPaymentProcessor().processPayment(BigDecimal.valueOf(amount)));
+    }
+
+    @Test
+    void testPlaceOrder_HasUUID_Success() {
+        Product product = new PhysicalProduct("Test Physical Product", "An example physical product", BigDecimal.valueOf(20.00d), 10, BigDecimal.valueOf(2.5));
+        Cart cart = new Cart();
+        cart.addItem(product, 2);
+
+        OrderService orderService = new OrderService(new CreditCardPaymentProcessor());
+        AtomicReference<Order> order = new AtomicReference<>();
+        assertDoesNotThrow(() -> order.set(orderService.placeOrder(cart)));
+        assertNotNull(order.get());
+        assertNotNull(order.get().getId());
+    }
 }
